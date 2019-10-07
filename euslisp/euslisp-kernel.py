@@ -9,8 +9,47 @@ crlf_pat = re.compile(r'[\r\n]+')
 
 class myREPLWrapper(replwrap.REPLWrapper):
     def _expect_prompt(self, timeout=-1, async=False):
-        return self.child.expect(self.prompt, #self.continuation_prompt],
-                                       timeout=timeout)
+        return self.child.expect(self.prompt, timeout=timeout)
+
+    def run_command(self, command, response_sender, timeout=-1, async=False):
+        # Split up multiline commands and feed them in bit-by-bit
+        cmdlines = command.splitlines()
+        # splitlines ignores trailing newlines - add it back in manually
+        if command.endswith('\n'):
+            cmdlines.append('')
+        if not cmdlines:
+            raise ValueError("No command was given")
+
+        # if async_:
+        #     from ._async import repl_run_command_async
+        #     return repl_run_command_async(self, cmdlines, timeout)
+
+        # res = []
+        prompt_res = 0
+        # self.child.sendline(cmdlines[0])
+        for line in cmdlines:
+            # self._expect_prompt(timeout=timeout)
+            self.child.sendline(line)
+            while True:
+                prompt_res = self.child.expect([self.prompt, '\n'], timeout=None)
+                # res.append(self.child.before)
+                response_sender(u'' + self.child.before)
+                if prompt_res == 1:
+                    if self.child.before != '':
+                        response_sender('\n')
+                else:
+                    break
+                # if prompt_res == 1:
+                #     response_sender(u'' + self.child.before + '\n')
+
+        # Command was fully submitted, now wait for the next prompt
+        # if self._expect_prompt(timeout=timeout) == 1:
+        #     # We got the continuation prompt - command was incomplete
+        #     self.child.kill(signal.SIGINT)
+        #     self._expect_prompt(timeout=1)
+        #     raise ValueError("Continuation prompt found - input was incomplete:\n"
+        #                      + command)
+        return 0 #u''.join(res + [self.child.before])
 
 def flatten_s_exp(s_exps):
     inspect_str = ' ' + re.sub(r'\n', ' ', s_exps) # make input command one-line
@@ -74,6 +113,10 @@ class EuslispKernel(Kernel):
         finally:
             signal.signal(signal.SIGINT, sig)
 
+    def response_sender(self, output):
+        stream_content = {'name': 'stdout', 'text': output}
+        self.send_response(self.iopub_socket, 'stream', stream_content)
+
     def do_execute(self, code, silent, store_history=True,
                    user_expressions=None, allow_stdin=False):
         code = crlf_pat.sub(' ', code.strip())
@@ -82,8 +125,9 @@ class EuslispKernel(Kernel):
                     'payload': [], 'user_expressions': {}}
 
         interrupted = False
+        output = ''
         try:
-            output = self.euslispwrapper.run_command(flatten_s_exp(code), timeout=None)
+            self.euslispwrapper.run_command(flatten_s_exp(code), self.response_sender, timeout=None)
         except KeyboardInterrupt:
             self.euslispwrapper.child.sendintr()
             interrupted = True
@@ -95,8 +139,9 @@ class EuslispKernel(Kernel):
 
         if not silent:
             # Send standard output
-            stream_content = {'name': 'stdout', 'text': output}
-            self.send_response(self.iopub_socket, 'stream', stream_content)
+            # stream_content = {'name': 'stdout', 'text': output}
+            # self.send_response(self.iopub_socket, 'stream', stream_content)
+            self.response_sender(output)
 
         if interrupted:
             return {'status': 'abort', 'execution_count': self.execution_count}
