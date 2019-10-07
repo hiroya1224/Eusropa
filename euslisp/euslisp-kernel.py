@@ -1,12 +1,32 @@
 from ipykernel.kernelbase import Kernel
 from pexpect import replwrap, EOF
 from subprocess import check_output
-
 import re
 import signal
 
 crlf_pat = re.compile(r'[\r\n]+')
 
+### get euslisp version ###
+def getVersion():
+    import pexpect
+    import re
+
+    p = pexpect.spawn("irteusgl")
+
+    while True:
+        try:
+            p.expect('[0-9]*\.(E[0-9]*-|B[0-9]*-|)irteusgl\$\ ')
+            p.sendline("(lisp-implementation-version)")
+            p.expect('[0-9]*\.(E[0-9]*-|B[0-9]*-|)irteusgl\$\ ')
+            inspect_str = p.before.decode(encoding="UTF-8")
+            p.sendline("(exit)")
+        except pexpect.EOF:
+            break
+
+    match = re.search(r'((?i)euslisp)\ [0-9]*(\.|)[0-9]*', inspect_str).group()
+    return match[8:] # 8 = length of "euslisp "
+
+### define wrapper ###
 class myREPLWrapper(replwrap.REPLWrapper):
     def _expect_prompt(self, timeout=-1, async=False):
         return self.child.expect(self.prompt, timeout=timeout)
@@ -20,43 +40,30 @@ class myREPLWrapper(replwrap.REPLWrapper):
         if not cmdlines:
             raise ValueError("No command was given")
 
-        # if async_:
-        #     from ._async import repl_run_command_async
-        #     return repl_run_command_async(self, cmdlines, timeout)
-
-        # res = []
         prompt_res = 0
         # self.child.sendline(cmdlines[0])
         for line in cmdlines:
             # self._expect_prompt(timeout=timeout)
             self.child.sendline(line)
             while True:
+                # read each line
                 prompt_res = self.child.expect([self.prompt, '\n'], timeout=None)
-                # res.append(self.child.before)
+                # show each line on the notebook
                 response_sender(u'' + self.child.before)
                 if prompt_res == 1:
                     if self.child.before != '':
                         response_sender('\n')
-                else:
+                else: # if find "irteusgl$", go to next command
                     break
-                # if prompt_res == 1:
-                #     response_sender(u'' + self.child.before + '\n')
+        return 0
 
-        # Command was fully submitted, now wait for the next prompt
-        # if self._expect_prompt(timeout=timeout) == 1:
-        #     # We got the continuation prompt - command was incomplete
-        #     self.child.kill(signal.SIGINT)
-        #     self._expect_prompt(timeout=1)
-        #     raise ValueError("Continuation prompt found - input was incomplete:\n"
-        #                      + command)
-        return 0 #u''.join(res + [self.child.before])
-
+### make input command one-line ###
 def flatten_s_exp(s_exps):
-    inspect_str = ' ' + re.sub(r'\n', ' ', s_exps) # make input command one-line
-    paren_count = [0, 0] #current and previous (to prevent from counting \n s)
+    inspect_str = ' ' + re.sub(r'\n', ' ', s_exps)
+    paren_count = [0, 0] #current and previous (to prevent counting continuous \n)
     idcs = [0] #where the list ends
     if not '(' in s_exps:
-        return s_exps
+        return s_exps # e.g., 'exit' -> '(exit)'
 
     for i in range(1, len(inspect_str)):
         if inspect_str[i] is "(":
@@ -79,28 +86,28 @@ def flatten_s_exp(s_exps):
 
     return strs[:-1]
 
-
+### Kernel Main ###
 class EuslispKernel(Kernel):
     implementation = 'euslisp_kernel'
     implementation_version = '0.0.1'
 
     language_info = {'name': 'euslisp',
-                     'codemirror_mode': 'common-lisp',
+                     'codemirror_mode': 'commonlisp',
                      'mimetype': 'text/plain',
                      'file_extension': '.l'}
 
-    _language_version = '9.26'
+    _language_version = None
 
 
     @property
     def language_version(self):
         if self._language_version is None:
-            self._language_version = check_output(['sml', '']).decode('utf-8')
+            self._language_version = getVersion()
         return self._language_version
 
     @property
     def banner(self):
-        return u'Simple EusLisp Kernel (%s)' % self.language_version
+        return u'Eusropa ― EusLisp Kernel for Jupyter (%s)' % self.language_version
 
     def __init__(self, **kwargs):
         Kernel.__init__(self, **kwargs)
