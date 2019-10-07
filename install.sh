@@ -5,7 +5,7 @@ JUPYTER_LOC=`jupyter --paths | grep 'data' -A 1 | grep -oE '/.*'`
 
 ### copy kernel ###
 mkdir -p "$JUPYTER_LOC/kernels/euslisp"
-cp -r euslisp/ "$JUPYTER_LOC/kernels/euslisp/"
+cp -r euslisp/ "$JUPYTER_LOC/kernels/"
 
 ### create kernel.json ###
 echo '{' > kernel.json
