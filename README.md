@@ -1,16 +1,25 @@
 # Eusropa
-A EusLisp kernel for Jupyter
+A EusLisp kernel for Jupyter (named after *Europa*, one of the moons of *Jupiter*)
 
-- Locate the `euslisp` directory under `~/.local/share/jupyter/kernels/`.
-- Create `~/.local/share/jupyter/kernels/euslisp/kernel.json` and write as below:
->{  
->    "display_name": "EusLisp",  
->    "language": "euslisp",  
->    "argv": [  
->	"python",  
->	"[/path/to/user_home]/.local/share/jupyter/kernels/euslisp/euslisp-kernel.py",  
->	"-f", "{connection_file}"  
->    ]  
->}  
+## System Requirements
 
-You need to change `[/path/to/user_home]` to fit your environment (e.g., `..."/home/hiroya/.local/..."` ).
+OS: Ubuntu 16.04 (recommended)
+
+Make sure the following commands are available:
+
+- `python3`
+- `jupyter notebook`
+- `irteusgl`
+
+## Installation
+
+- Clone this repository:
+`git clone https://github.com/hiroya1224/Eusropa.git`.
+- Execute `./install.sh`.
+
+## Usage
+
+- Run `jupyter notebook` on your working directory.
+- After installation, you can select the kernel from the menu (see image below):
+![explanation_fig]
+(https://user-images.githubusercontent.com/49953704/66371085-3c496d00-e9dd-11e9-9b26-60ea799294e6.png)
