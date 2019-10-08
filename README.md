@@ -21,5 +21,4 @@ Make sure the following commands are available:
 
 - Run `jupyter notebook` on your working directory.
 - After installation, you can select the kernel from the menu (see image below):
-![explanation_fig]
-(https://user-images.githubusercontent.com/49953704/66371085-3c496d00-e9dd-11e9-9b26-60ea799294e6.png)
+![explanation_fig](https://user-images.githubusercontent.com/49953704/66371085-3c496d00-e9dd-11e9-9b26-60ea799294e6.png)
