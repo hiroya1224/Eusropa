@@ -39,6 +39,8 @@ class myREPLWrapper(replwrap.REPLWrapper):
             cmdlines.append('')
         if not cmdlines:
             raise ValueError("No command was given")
+        # response_sender("command: {}".format(command))
+        # response_sender("cmdlines: {}".format(cmdlines))
 
         prompt_res = 0
         # self.child.sendline(cmdlines[0])
@@ -86,6 +88,24 @@ def flatten_s_exp(s_exps):
 
     return strs[:-1]
 
+# def bk_count(s):
+#     bras = [i for i in range(len(s)) if s[i] == '(']
+#     kets = [i for i in range(len(s)) if s[i] == ')']
+#     return len(bras) - len(kets)
+#
+# def flatten_s_exp(s_exps):
+#     s_lines = s_exps.splitlines()
+#     strs = ""
+#     cntr = 0
+#     for s in s_lines:
+#         strs += s + ' '
+#         cntr += bk_count(s)
+#         if cntr == 0:
+#             strs += '\n'
+#     if cntr != 0:
+#         raise ValueError("Check the parentheses.")
+#     return strs[:-1]
+
 ### Kernel Main ###
 class EuslispKernel(Kernel):
     implementation = 'euslisp_kernel'
@@ -126,13 +146,15 @@ class EuslispKernel(Kernel):
 
     def do_execute(self, code, silent, store_history=True,
                    user_expressions=None, allow_stdin=False):
-        code = crlf_pat.sub(' ', code.strip())
+        # code = crlf_pat.sub(' ', code.strip())
         if not code:
             return {'status': 'ok', 'execution_count': self.execution_count,
                     'payload': [], 'user_expressions': {}}
 
         interrupted = False
         output = ''
+
+        # self.response_sender("code: {}".format(code))
         try:
             self.euslispwrapper.run_command(flatten_s_exp(code), self.response_sender, timeout=None)
         except KeyboardInterrupt:
@@ -143,6 +165,12 @@ class EuslispKernel(Kernel):
         except EOF:
             output = self.euslispwrapper.child.before + 'Restarting irteusgl'
             self._start_euslisp()
+        except ValueError as e:
+            interrupted = True
+            output = '\033[1m\033[91m' + 'ValueError:'
+            for arg in e.args:
+                output += '\n' + arg
+            output += '\033[0m\033[0m'
 
         if not silent:
             # Send standard output
