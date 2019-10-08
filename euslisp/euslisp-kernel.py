@@ -38,7 +38,7 @@ class myREPLWrapper(replwrap.REPLWrapper):
         if command.endswith('\n'):
             cmdlines.append('')
         if not cmdlines:
-            raise ValueError("No command was given")
+            raise ValueError("No command was given.")
         # response_sender("command: {}".format(command))
         # response_sender("cmdlines: {}".format(cmdlines))
 
@@ -61,7 +61,10 @@ class myREPLWrapper(replwrap.REPLWrapper):
 
 ### make input command one-line ###
 def flatten_s_exp(s_exps):
-    inspect_str = ' ' + re.sub(r'\n', ' ', s_exps)
+    s_exps = re.sub(r';.*\n', ' ', s_exps) # omit one-line comments
+    s_exps = re.sub(r'\n', ' ', s_exps) #flatten
+    inspect_str = ' ' + re.sub(r'#\|.*\|#', ' ', s_exps) # omit multi-line comments
+
     paren_count = [0, 0] #current and previous (to prevent counting continuous \n)
     idcs = [0] #where the list ends
     if not '(' in s_exps:
@@ -81,7 +84,7 @@ def flatten_s_exp(s_exps):
     strs = ""
 
     if paren_count[0] != 0 :
-        raise ValueError("Check the parentheses.")
+        raise ValueError("Found mismatched parentheses.")
 
     for i in range(1,len(idcs)):
         strs += inspect_str[1:][idcs[i-1]:idcs[i]] + "\n"
@@ -163,7 +166,7 @@ class EuslispKernel(Kernel):
             self.euslispwrapper._expect_prompt()
             output = self.euslispwrapper.child.before
         except EOF:
-            output = self.euslispwrapper.child.before + 'Restarting irteusgl'
+            output = self.euslispwrapper.child.before + '\033[91m[Kernel died] Restarted automatically.\033[0m'
             self._start_euslisp()
         except ValueError as e:
             interrupted = True
