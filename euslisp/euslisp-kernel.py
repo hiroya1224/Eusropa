@@ -28,10 +28,10 @@ def getVersion():
 
 ### define wrapper ###
 class myREPLWrapper(replwrap.REPLWrapper):
-    def _expect_prompt(self, timeout=-1, async=False):
+    def _expect_prompt(self, timeout=-1):
         return self.child.expect(self.prompt, timeout=timeout)
 
-    def run_command(self, command, response_sender, timeout=-1, async=False):
+    def run_command(self, command, response_sender, timeout=-1):
         # Split up multiline commands and feed them in bit-by-bit
         cmdlines = command.splitlines()
         # splitlines ignores trailing newlines - add it back in manually
